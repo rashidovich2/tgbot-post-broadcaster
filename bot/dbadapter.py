@@ -125,13 +125,12 @@ class ReceiverGroup(Base):
         return f'<ReceiverGroup chat_id={self.chat_id} [{"x" if self.enabled else " "}]>'
 
     def to_dict(self) -> dict:
-        d = {
+        return {
             'chat_id': self.chat_id,
             'enabled': self.enabled,
             'title': self.title,
             'tags': list(self.tags),
         }
-        return d
 
     @classmethod
     def from_dict(cls, d: dict, *, session: Optional[Session]) -> 'ReceiverGroup':

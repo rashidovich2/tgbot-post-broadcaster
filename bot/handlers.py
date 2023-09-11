@@ -40,7 +40,7 @@ def db_session_from_context(context: CallbackContext):
         yield session
         session.commit()
     except Exception as exc:
-        logger.exception(f'Unexpected error in attempt to commit session: ')
+        logger.exception('Unexpected error in attempt to commit session: ')
         session.rollback()
         raise
     finally:
@@ -100,12 +100,12 @@ def command_debug(update: Update, context: CallbackContext) -> None:
                 rg: ReceiverGroup
                 is_enabled = rg.enabled
         except Exception as exc:
-            reply_md += f'Could not retrieve group chat data.'
+            reply_md += 'Could not retrieve group chat data.'
         else:
             if rg:
                 reply_md += f'Broadcasting enabled: `{is_enabled}`\n'
             else:
-                reply_md += f'No data for this group chat.'
+                reply_md += 'No data for this group chat.'
 
     update.message.reply_markdown(reply_md)
 
@@ -223,15 +223,14 @@ def command_tags(update: Update, context: CallbackContext) -> None:
             return
 
         if context.args:
-            tags_to_add = set(t[1:] for t in context.args if t.startswith('+'))
+            tags_to_add = {t[1:] for t in context.args if t.startswith('+')}
             not_allowed_tags = tags_to_add.difference(settings.POST_TAGS)
-            tags_to_remove = set(t[1:] for t in context.args if t.startswith('-'))
+            tags_to_remove = {t[1:] for t in context.args if t.startswith('-')}
 
-            tags_changed = rg.update_tags(
+            if tags_changed := rg.update_tags(
                 tags_to_add=tags_to_add.intersection(settings.POST_TAGS),
                 tags_to_remove=tags_to_remove,
-            )
-            if tags_changed:
+            ):
                 db_session.add(rg)
                 reply_md = 'Updated subscription tags to:\n'
                 reply_md += '\n'.join(
@@ -260,8 +259,7 @@ def command_tags(update: Update, context: CallbackContext) -> None:
                 reply_md += 'List of other allowed tags:\n'
             else:
                 reply_md += 'List of all allowed tags:\n'
-            other_tags = list(settings.POST_TAGS.difference(rg.tags_set))
-            other_tags.sort()
+            other_tags = sorted(settings.POST_TAGS.difference(rg.tags_set))
             reply_md += '\n'.join(
                 f'~ #{t}   subscribe by copy&pasting _/tags +{t}_' for t in other_tags
             )
@@ -304,10 +302,7 @@ def handler_broadcast_post(update: Update, context: CallbackContext) -> None:
     logger.debug(f'Post in {update.effective_chat.id} channel.')
     post = update.effective_message
 
-    post_tags = set(
-        t for t in settings.POST_TAGS
-        if f'#{t}' in post.text
-    )
+    post_tags = {t for t in settings.POST_TAGS if f'#{t}' in post.text}
 
     with db_session_from_context(context) as db_session:
         enabled_groups = list(db_session.query(ReceiverGroup).filter(ReceiverGroup.enabled == True))
